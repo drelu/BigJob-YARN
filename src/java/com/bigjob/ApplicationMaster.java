@@ -16,6 +16,13 @@
  * limitations under the License.
  */
 
+/* Based on Hadoop Distributed Shell Example 
+ * 
+ * https://github.com/apache/hadoop-common/blob/trunk/hadoop-yarn-project/hadoop-yarn/hadoop-yarn-applications/
+ * hadoop-yarn-applications-distributedshell/src/main/java/org/apache/hadoop/yarn/applications/distributedshell/
+ * 
+ * Modified by Andre Luckow to facilitate BigJob Launch */
+
 package com.bigjob;
 
 import java.io.BufferedReader;

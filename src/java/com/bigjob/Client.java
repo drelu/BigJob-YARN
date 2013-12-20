@@ -78,6 +78,9 @@ import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnException;
 import org.apache.hadoop.yarn.util.ConverterUtils;
 import org.apache.hadoop.yarn.util.Records;
+import org.apache.log4j.ConsoleAppender;
+import org.apache.log4j.Level;
+import org.apache.log4j.PatternLayout;
 
 /**
  * Client for Distributed Shell application submission to YARN.
@@ -114,8 +117,8 @@ import org.apache.hadoop.yarn.util.Records;
 @InterfaceStability.Unstable
 public class Client {
 
-  private static final Log LOG = LogFactory.getLog(Client.class);
-
+  private static Log LOG = LogFactory.getLog(Client.class);
+  
   // Configuration
   private Configuration conf;
   private YarnClient yarnClient;
@@ -172,7 +175,7 @@ public class Client {
   private static final String shellArgsPath = "shellArgs";
   private static final String appMasterJarPath = "AppMaster.jar";
   // Hardcoded path to custom log_properties
-  private static final String log4jPath = "log4j.properties";
+  private static final String log4jPath = "/Users/luckow/workspace-saga/bigjob/BigJob-YARN/src/log4j.properties";
 
   private static final String linuxShellPath = "ExecShellScript.sh";
   private static final String windowBatPath = "ExecBatScript.bat";
@@ -184,6 +187,7 @@ public class Client {
     boolean result = false;
     try {
       Client client = new Client();
+      
       LOG.info("Initializing Client");
       try {
         boolean doRun = client.init(args);
