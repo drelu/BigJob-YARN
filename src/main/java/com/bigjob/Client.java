@@ -123,7 +123,7 @@ public class Client {
   private Configuration conf;
   private YarnClient yarnClient;
   // Application master specific info to register a new Application with RM/ASM
-  private String appName = "";
+  private String appName = "BigJob";
   // App master priority
   private int amPriority = 0;
   // Queue for App master
@@ -164,6 +164,10 @@ public class Client {
   private final long clientStartTime = System.currentTimeMillis();
   // Timeout threshold for client. Kill app after time interval expires.
   private long clientTimeout = 600000;
+  
+  
+  private String dfsUrl = "hdfs://localhost:9000";
+  //private String dfsUrl = "";
 
   // Debug flag
   boolean debugFlag = false;	
@@ -212,23 +216,17 @@ public class Client {
     System.exit(2);
   }
 
-  /**
-   */
-  public Client(Configuration conf) throws Exception  {
-    this(
-      "org.apache.hadoop.yarn.applications.distributedshell.ApplicationMaster",
-      conf);
-  }
 
-  Client(String appMasterMainClass, Configuration conf) {
+
+  Client(Configuration conf) {
     this.conf = conf;
     //this.appMasterMainClass = appMasterMainClass;
-    yarnClient = YarnClient.createYarnClient();
-    yarnClient.init(conf);
     opts = new Options();
     opts.addOption("appname", true, "Application Name. Default value - DistributedShell");
     opts.addOption("priority", true, "Application Priority. Default 0");
     opts.addOption("queue", true, "RM Queue in which this application is to be submitted");
+    opts.addOption("config", true, "HADOOP_CONF_DIR");
+    
     opts.addOption("timeout", true, "Application timeout in milliseconds");
     opts.addOption("master_memory", true, "Amount of memory in MB to be requested to run the application master");
     opts.addOption("master_vcores", true, "Amount of virtual cores to be requested to run the application master");
@@ -249,7 +247,8 @@ public class Client {
     opts.addOption("log_properties", true, "log4j.properties file");
     opts.addOption("debug", false, "Dump out debug information");
     opts.addOption("help", false, "Print usage");
-
+    
+    
   }
 
   /**
@@ -265,6 +264,10 @@ public class Client {
     new HelpFormatter().printHelp("Client", opts);
   }
 
+  private boolean fileExist(String filePath) {
+	    return new File(filePath).exists();
+  }
+  
   /**
    * Parse command line options
    * @param args Parsed command line options 
@@ -274,7 +277,7 @@ public class Client {
   public boolean init(String[] args) throws ParseException {
 
     CommandLine cliParser = new GnuParser().parse(opts, args);
-
+    
     if (args.length == 0) {
       throw new IllegalArgumentException("No args specified for client to initialize");
     }
@@ -298,11 +301,35 @@ public class Client {
 
     }
 
-    appName = cliParser.getOptionValue("appname", "DistributedShell");
+    if (fileExist("log4j.properties")) {
+        try {
+          Log4jPropertyHelper.updateLog4jConfiguration(ApplicationMaster.class,
+        		  "log4j.properties");
+        } catch (Exception e) {
+          LOG.warn("Can not set up custom log4j properties. " + e);
+        }
+     } else {
+    	 LOG.warn("No Log4j found");
+    	 
+     }
+    
+    
+    yarnClient = YarnClient.createYarnClient();
+    String configPath = cliParser.getOptionValue("config", "");
+    if (configPath.compareTo("")==0){
+    	conf = new YarnConfiguration();    	
+    }else{
+    	conf = new YarnConfiguration();
+    }    
+    yarnClient.init(conf);
+
+    
+    appName = cliParser.getOptionValue("appname", appName);
     amPriority = Integer.parseInt(cliParser.getOptionValue("priority", "0"));
     amQueue = cliParser.getOptionValue("queue", "default");
     amMemory = Integer.parseInt(cliParser.getOptionValue("master_memory", "10"));		
     amVCores = Integer.parseInt(cliParser.getOptionValue("master_vcores", "1"));
+    
     
     if (amMemory < 0) {
       throw new IllegalArgumentException("Invalid memory specified for application master, exiting."
@@ -383,7 +410,7 @@ public class Client {
     yarnClient.start();
 
     YarnClusterMetrics clusterMetrics = yarnClient.getYarnClusterMetrics();
-    LOG.info("Got Cluster metric info from ASM" 
+    LOG.info("Got Cluster metric info from ASM (RM)" 
         + ", numNodeManagers=" + clusterMetrics.getNumNodeManagers());
 
     List<NodeReport> clusterNodeReports = yarnClient.getNodeReports(
@@ -459,6 +486,9 @@ public class Client {
     LOG.info("Copy App Master jar from local filesystem and add to local environment");
     // Copy the application master jar to the filesystem 
     // Create a local resource to point to the destination jar path 
+    if (dfsUrl!=null && dfsUrl.equals("")==false){
+    	conf.set("fs.defaultFS", dfsUrl);
+    }
     FileSystem fs = FileSystem.get(conf);
     addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.getId(),
         localResources, null);
@@ -729,30 +759,29 @@ public class Client {
   }
 
   private void addToLocalResources(FileSystem fs, String fileSrcPath,
-      String fileDstPath, int appId, Map<String, LocalResource> localResources,
-      String resources) throws IOException {
-    String suffix =
-        appName + "/" + appId + "/" + fileDstPath;
-    Path dst =
-        new Path(fs.getHomeDirectory(), suffix);
-    if (fileSrcPath == null) {
-      FSDataOutputStream ostream = null;
-      try {
-        ostream = FileSystem
-            .create(fs, dst, new FsPermission((short) 0710));
-        ostream.writeUTF(resources);
-      } finally {
-        IOUtils.closeQuietly(ostream);
-      }
-    } else {
-      fs.copyFromLocalFile(new Path(fileSrcPath), dst);
-    }
-    FileStatus scFileStatus = fs.getFileStatus(dst);
-    LocalResource scRsrc =
-        LocalResource.newInstance(
-            ConverterUtils.getYarnUrlFromURI(dst.toUri()),
-            LocalResourceType.FILE, LocalResourceVisibility.APPLICATION,
-            scFileStatus.getLen(), scFileStatus.getModificationTime());
-    localResources.put(fileDstPath, scRsrc);
+    String fileDstPath, int appId, Map<String, LocalResource> localResources,
+    String resources) throws IOException {
+	String suffix =  appName + "/" + appId + "/" + fileDstPath;
+	Path dst =  new Path(fs.getHomeDirectory(), suffix);
+	LOG.debug("HDFS Destination for Script: " + dst.toString());
+	if (fileSrcPath == null) {
+	  FSDataOutputStream ostream = null;
+	  try {
+	    ostream = FileSystem
+	        .create(fs, dst, new FsPermission((short) 0710));
+	    ostream.writeUTF(resources);
+	  } finally {
+	    IOUtils.closeQuietly(ostream);
+	  }
+	} else {
+	  fs.copyFromLocalFile(new Path(fileSrcPath), dst);
+	}
+	FileStatus scFileStatus = fs.getFileStatus(dst);
+	LocalResource scRsrc =
+	    LocalResource.newInstance(
+	        ConverterUtils.getYarnUrlFromURI(dst.toUri()),
+	        LocalResourceType.FILE, LocalResourceVisibility.APPLICATION,
+	        scFileStatus.getLen(), scFileStatus.getModificationTime());
+	localResources.put(fileDstPath, scRsrc);
   }
 }
