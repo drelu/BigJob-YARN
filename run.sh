@@ -1,3 +1,1 @@
-yarn -jar target/BigJob-YARN-0.1-SNAPSHOT-jar-with-dependencies.jar com.bigjob.Client --container_vcores 1\
-     -shell_command /bin/date -jar target/BigJob-YARN-0.1-SNAPSHOT-jar-with-dependencies.jar 
-
+yarn -jar target/BigJob-YARN-0.1-SNAPSHOT-jar-with-dependencies.jar com.bigjob.Client -log_properties /Users/luckow/workspace-saga/bigjob/BigJob-YARN/src/main/resources/log4j.properties --container_vcores 1     -shell_command /bin/date -jar target/BigJob-YARN-0.1-SNAPSHOT-jar-with-dependencies.jar
