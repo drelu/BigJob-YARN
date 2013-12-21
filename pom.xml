@@ -33,6 +33,12 @@
 		</repository>
 	</repositories>
 	<dependencies>
+	    <dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<!-- version>2.1.0.2.0.5.0-67</version-->
+			<version>2.2.0</version>			
+		</dependency>	
 		<dependency>
 			<groupId>org.apache.hadoop</groupId>
 			<artifactId>hadoop-yarn-client</artifactId>
@@ -68,12 +74,7 @@
 			<!-- version>2.1.0.2.0.5.0-67</version-->
 			<version>2.2.0.2.0.6.0-76</version>			
 		</dependency>
-		<dependency>
-			<groupId>org.apache.hadoop</groupId>
-			<artifactId>hadoop-hdfs</artifactId>
-			<!-- version>2.1.0.2.0.5.0-67</version-->
-			<version>2.2.0</version>			
-		</dependency>		
+			
 		
 <dependency>
 	<groupId>net.spy</groupId>
@@ -147,10 +148,15 @@
             <mainClass>com.bigjob.Client</mainClass>
           </manifest>
       </archive>
+       <descriptors>
+            <descriptor>config.xml</descriptor>
+          </descriptors>
       <descriptorRefs>
         <descriptorRef>jar-with-dependencies</descriptorRef>
       </descriptorRefs>
     </configuration>
+    
+    
   </plugin>  
   </plugins>
   <sourceDirectory>src/main/java</sourceDirectory>
