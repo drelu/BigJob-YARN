@@ -148,6 +148,9 @@
             <mainClass>com.bigjob.Client</mainClass>
           </manifest>
       </archive>
+      <!-- filters>
+		<filter>META-INF/services/org.apache.hadoop.fs.FileSystem</filter>
+	  </filters-->
        <descriptors>
             <descriptor>config.xml</descriptor>
           </descriptors>
