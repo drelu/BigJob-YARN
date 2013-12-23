@@ -1,0 +1,5 @@
+org.apache.hadoop.fs.LocalFileSystem
+org.apache.hadoop.hdfs.DistributedFileSystem
+org.apache.hadoop.hdfs.HftpFileSystem
+org.apache.hadoop.hdfs.HsftpFileSystem
+org.apache.hadoop.hdfs.web.WebHdfsFileSystem

@@ -203,13 +203,13 @@ public class Client {
         client.printUsage();
         System.exit(-1);
       }
-      result = client.run();
+      result = client.run();      
     } catch (Throwable t) {
       LOG.fatal("Error running CLient", t);
       System.exit(1);
     }
     if (result) {
-      LOG.info("Application completed successfully");
+      LOG.info("Application submitted successfully");
       System.exit(0);			
     } 
     LOG.error("Application failed to complete successfully");
@@ -664,14 +664,15 @@ public class Client {
     LOG.info("Submitting application to ASM");
 
     yarnClient.submitApplication(appContext);
-
+    
     // TODO
     // Try submitting the same request again
     // app submission failure?
 
     // Monitor the application
-    return monitorApplication(appId);
-
+    //return monitorApplication(appId);
+    System.out.println("ApplicationId:"+appId);
+    return true;
   }
 
   /**
