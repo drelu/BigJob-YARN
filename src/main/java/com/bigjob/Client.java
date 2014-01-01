@@ -20,6 +20,8 @@ package com.bigjob;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import org.apache.commons.httpclient.URI;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -148,6 +150,7 @@ public class Client {
   private Map<String, String> shellEnv = new HashMap<String, String>();
   // Shell Command Container priority 
   private int shellCmdPriority = 0;
+  private String serviceUrl = "yarn://localhost?fs=hdfs://localhost";
 
   // Amt of memory to request for container in which shell script will be executed
   private int containerMemory = 10; 
@@ -166,8 +169,8 @@ public class Client {
   private long clientTimeout = 600000;
   
   
-  private String dfsUrl = "hdfs://localhost:9000";
-  //private String dfsUrl = "";
+  //private String dfsUrl = "hdfs://localhost:9000";
+  private String dfsUrl = null;
 
   // Debug flag
   boolean debugFlag = false;	
@@ -244,11 +247,11 @@ public class Client {
     opts.addOption("container_memory", true, "Amount of memory in MB to be requested to run the shell command");
     opts.addOption("container_vcores", true, "Amount of virtual cores to be requested to run the shell command");
     opts.addOption("num_containers", true, "No. of containers on which the shell command needs to be executed");
+    opts.addOption("service_url", true, "URL of YARN/HDFS service, e.g. yarn://localhost?fs=hdfs://localhost");
     opts.addOption("log_properties", true, "log4j.properties file");
     opts.addOption("debug", false, "Dump out debug information");
     opts.addOption("help", false, "Print usage");
-    
-    
+     
   }
 
   /**
@@ -329,6 +332,34 @@ public class Client {
     amQueue = cliParser.getOptionValue("queue", "default");
     amMemory = Integer.parseInt(cliParser.getOptionValue("master_memory", "10"));		
     amVCores = Integer.parseInt(cliParser.getOptionValue("master_vcores", "1"));
+    serviceUrl = cliParser.getOptionValue("service_url", "yarn://localhost?fs=hdfs://localhost:9000");
+    
+    try{ 
+    	org.apache.commons.httpclient.URI url = new org.apache.commons.httpclient.URI(serviceUrl, false);
+    	//YARN URL
+    	String host = url.getHost();
+    	int port = 8032;
+    	if (url.getPort()!=-1) {
+    		port = url.getPort();    		
+    	};
+    	String yarnRM = host+":"+port;
+    	LOG.info("Connecting to YARN at: " + yarnRM);
+    	conf.set("yarn.resourcemanager.address", yarnRM);
+    	
+    	//Hadoop FS/HDFS URL
+    	String query = url.getQuery();
+    	if (query.startsWith("fs=")){
+    		dfsUrl = query.substring(3, query.length());
+    		LOG.info("Connect to Hadoop FS: " + dfsUrl);
+    		conf.set("fs.defaultFS", dfsUrl);
+    	}	
+    	
+    } catch(Exception e)
+    {
+    	e.printStackTrace();
+    }
+    	
+    
     
     
     if (amMemory < 0) {
@@ -486,9 +517,9 @@ public class Client {
     LOG.info("Copy App Master jar from local filesystem and add to local environment");
     // Copy the application master jar to the filesystem 
     // Create a local resource to point to the destination jar path 
-    if (dfsUrl!=null && dfsUrl.equals("")==false){
-    	conf.set("fs.defaultFS", dfsUrl);
-    }
+//    if (dfsUrl!=null && dfsUrl.equals("")==false){
+//    	conf.set("fs.defaultFS", dfsUrl);
+//    }
     FileSystem fs = FileSystem.get(conf);
     addToLocalResources(fs, appMasterJar, appMasterJarPath, appId.getId(),
         localResources, null);
@@ -589,7 +620,7 @@ public class Client {
     vargs.add("--container_vcores " + String.valueOf(containerVirtualCores));
     vargs.add("--num_containers " + String.valueOf(numContainers));
     vargs.add("--priority " + String.valueOf(shellCmdPriority));
-
+       
     for (Map.Entry<String, String> entry : shellEnv.entrySet()) {
       vargs.add("--shell_env " + entry.getKey() + "=" + entry.getValue());
     }			
